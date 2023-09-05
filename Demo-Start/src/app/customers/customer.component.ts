@@ -1,7 +1,20 @@
 import { Component, OnInit } from '@angular/core';
 
 import { Customer } from './customer';
-import { FormControl, FormGroup } from '@angular/forms';
+import {
+  AbstractControl,
+  FormBuilder,
+  FormControl,
+  FormGroup,
+  Validators,
+} from '@angular/forms';
+
+function ratingRange(c: AbstractControl): { [key: string]: boolean } | null {
+  if (c.value !== null && (isNaN(c.value) || c.value < 1 || c.value > 5)) {
+    return { range: true };
+  }
+  return null;
+}
 
 @Component({
   selector: 'app-customer',
@@ -12,14 +25,17 @@ export class CustomerComponent implements OnInit {
   customerForm: FormGroup;
   customer = new Customer();
 
-  constructor() {}
+  constructor(private fb: FormBuilder) {}
 
   ngOnInit(): void {
-    this.customerForm = new FormGroup({
-      firstName: new FormControl(),
-      lastName: new FormControl(),
-      email: new FormControl(),
-      sendCatalog: new FormControl(true),
+    this.customerForm = this.fb.group({
+      firstName: ['', [Validators.required, Validators.minLength(3)]],
+      lastName: ['', [Validators.required, Validators.maxLength(50)]],
+      email: ['', [Validators.required, Validators.email]],
+      phone: '',
+      notification: 'email',
+      rating: [null, ratingRange],
+      sendCatalog: true,
     });
   }
 
@@ -29,11 +45,20 @@ export class CustomerComponent implements OnInit {
   }
 
   populateTestData(): void {
-    this.customerForm.setValue({
+    this.customerForm.patchValue({
       firstName: 'Jack',
       lastName: 'Wong',
-      email: 'jack@mail.com',
       sendCatalog: false,
     });
+  }
+
+  setNotification(notifyVia: string): void {
+    const phoneControl = this.customerForm.get('phone');
+    if (notifyVia === 'text') {
+      phoneControl.setValidators(Validators.required);
+    } else {
+      phoneControl.clearValidators();
+    }
+    phoneControl.updateValueAndValidity();
   }
 }
